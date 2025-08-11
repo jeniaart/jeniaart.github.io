@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="UTF-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Northern Morocco Language Data</title>
+    <title>Baby-talk/Child-Directed Speech in Northern Morocco</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -44,6 +44,8 @@
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid #ddd;
+            max-width: 200px;
+            overflow-wrap: break-word;
         }
         th {
             background-color: #f8f9fa;
@@ -74,11 +76,20 @@
             font-style: italic;
             color: #666;
         }
+        .error {
+            color: #dc3545;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #dc3545;
+            border-radius: 4px;
+            background-color: #f8d7da;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Northern Morocco Language Data</h1>
+        <h1>Baby-talk/Child-Directed Speech in Northern Morocco</h1>
+        <h2 style="color: #666; font-weight: normal; margin-top: -10px; margin-bottom: 20px;">Ketama Moroccan Arabic (Darija), Senhaja and Tarifit Berber/Amazigh/Tamazight</h2>
         <div class="search-container">
             <input type="text" id="searchInput" placeholder="Search in any column...">
         </div>
@@ -99,28 +110,44 @@
         </table>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script>
         // Global variables
         let tableData = [];
         let currentSortColumn = null;
         let isAscending = true;
 
-        // Function to load and parse CSV data
+        // Function to load and parse CSV data using Papa Parse
         async function loadCSVData() {
             try {
                 const response = await fetch('cds_northern_morocco.csv');
                 const csvText = await response.text();
-                const rows = csvText.split('\n').slice(1); // Skip header row
                 
-                tableData = rows.map(row => {
-                    // Split by comma but keep contents within quotes together
-                    const values = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
-                    return values.map(val => val.replace(/^"|"$/g, '').trim()); // Remove quotes and trim
-                }).filter(row => row.length === 8); // Ensure row has all columns
-
-                displayData(tableData);
+                Papa.parse(csvText, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        // Map the data to match our column structure
+                        tableData = results.data.map(row => [
+                            row['CDS (Child-directed speech)'],
+                            row['ADS (adult-directed speech)'],
+                            row['English'],
+                            row['Country'],
+                            row['PoS (Part of Speech)'],
+                            row['Language branch'],
+                            row['Language (group)'],
+                            row['Variety/Dialect']
+                        ]);
+                        displayData(tableData);
+                    },
+                    error: function(error) {
+                        console.error('Error parsing CSV:', error);
+                        showError('Error parsing the CSV file');
+                    }
+                });
             } catch (error) {
                 console.error('Error loading CSV:', error);
+                showError('Error loading the CSV file');
             }
         }
 
@@ -133,7 +160,7 @@
                 const tr = document.createElement('tr');
                 row.forEach(cell => {
                     const td = document.createElement('td');
-                    td.textContent = cell;
+                    td.textContent = cell || ''; // Handle null/undefined values
                     tr.appendChild(td);
                 });
                 tbody.appendChild(tr);
@@ -180,6 +207,15 @@
                 row.some(cell => cell.toLowerCase().includes(searchTerm))
             );
             displayData(filteredData);
+        }
+
+        // Function to show error message
+        function showError(message) {
+            const container = document.querySelector('.container');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            container.insertBefore(errorDiv, document.querySelector('.search-container'));
         }
 
         // Event Listeners
